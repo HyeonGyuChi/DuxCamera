@@ -154,7 +154,7 @@ def get_crosspt(pa1, pa2, pb1, pb2) :
     cx = (x11 * m1 - y11 - x21 * m2 + y21) / (m1 - m2)
     cy = m1 * (cx - x11) + y11
 
-    return (cx, cy)
+    return cx, cy
 
 
 

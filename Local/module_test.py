@@ -9,6 +9,7 @@ from object import CalculateObj, CalibrationObj
 import cv2
 
 if __name__ == "__main__":
+
     # IMG ROAD, 흑백
     q1_img = cv2.imread('./assets/source/cali_1.jpg', 0)
     q2_img = cv2.imread('./assets/source/cali_2.jpg', 0)
@@ -42,19 +43,30 @@ if __name__ == "__main__":
     # 각 쿼터 사각형 point 
     q1_x_max_blob_point, q1_y_min_blob_point, q1_x_min_blob_point, q1_y_max_blob_point = q1_centroid[2]
     
-    # theta 구하기 (두점 사이의 각도)
-    q1_theta = IPbasic.calc_theta(q1_centroid_point, q1_x_max_blob_point)# (center, target) (from, to)
+    # theta 구하기 4개의 꼭지점 구해 평균 각도 구하기(두점 사이의 각도)
+    q1_x_max_theta = IPbasic.calc_theta(q1_centroid_point, q1_x_max_blob_point)# (center, target) (from, to) --> 45
+    q1_y_min_theta = IPbasic.calc_theta(q1_centroid_point, q1_y_min_blob_point)# (center, target) (from, to) --> 135
+    q1_x_min_theta = IPbasic.calc_theta(q1_centroid_point, q1_x_min_blob_point)# (center, target) (from, to) --> 225(-135)
+    q1_y_max_theta = IPbasic.calc_theta(q1_centroid_point, q1_y_max_blob_point)# (center, target) (from, to) --> 315(-45)
 
-    print('--- centoirds --- ')
+    # 4개의 꼭지점이 틀어진 평균각도
+    q1_theta = ((45 - q1_x_max_theta) + (135 - q1_y_min_theta) + (-135 - q1_x_min_theta) + (-45 - q1_y_max_theta))  / 4
+
+    print(' --- theta info --- ')
+    print(q1_x_max_theta, q1_y_min_theta, q1_x_min_theta, q1_y_max_theta)
+    print(45 - q1_x_max_theta, 135 - q1_y_min_theta, -135 - q1_x_min_theta, -45 - q1_y_max_theta)
+
+
+    print(' --- centoirds --- ')
     print(q1_centroid_point)
 
     print(' --- ref_square w,h --- ')
     print(q1_centroid_square_shape)
     print(' --- --------- --- ')
 
-    print('--- theta --- ')
+    print(' --- theta --- ')
     print(q1_theta)
-    print('--- ----- --- ')
+    print(' --- ----- --- ')
 
     ### img merge ###
     # center

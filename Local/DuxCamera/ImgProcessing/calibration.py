@@ -18,7 +18,7 @@ import os
 
 import cv2
 
-from DuxCamera.ImgProcessing.basic import point2_distance
+from DuxCamera.ImgProcessing.basic import point2_distance, get_crosspt
 
 # BLOB 찾는 함수
 # https://www.learnopencv.com/blob-detection-using-opencv-python-c/
@@ -120,18 +120,26 @@ def find_centroid(img, blob_info) :
     cv2.polylines(img_copy, [pts], isClosed = True, color = (155, 155, 155), thickness = 10) # 사각형 그리기
     cv2.fillPoly(img_temp, [pts], (155, 155, 155), cv2.LINE_AA) # 채워진 사각형 그리기
     # cv2.fillPoly(img_copy, [pts], (155, 155, 155), cv2.LINE_AA) # 채워진 사각형 그리기
-    
+        
     # img_temp의 무게중심 구하기
-    contours, hierarchy = cv2.findContours(img_temp, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    # contours, hierarchy = cv2.findContours(img_temp, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
     
-    for i in contours:
-        M = cv2.moments(i)
-        cX = int(M['m10'] / M['m00'])
-        cY = int(M['m01'] / M['m00'])
-    
-        cv2.circle(img_temp, (cX, cY), 15, (100, 100, 100), -1)
-        cv2.circle(img_copy, (cX, cY), 15, (100, 100, 100), -1)
-        cv2.drawContours(img_temp, [i], 0, (100, 100, 100), 10)
+    # for i in contours:
+    #    M = cv2.moments(i)
+    #    cX = int(M['m10'] / M['m00'])
+    #    cY = int(M['m01'] / M['m00'])
+    #    cv2.drawContours(img_temp, [i], 0, (100, 100, 100), 10)
+
+
+    ## 두 선분의 교점으로 구하기
+    cX, cY = get_crosspt(x_min_blob[0:2], x_max_blob[0:2], y_min_blob[0:2], y_max_blob[0:2])
+
+    cX = int(cX)
+    cY = int(cY)
+
+    cv2.circle(img_temp, (cX, cY), 15, (100, 100, 100), -1)
+    cv2.circle(img_copy, (cX, cY), 15, (100, 100, 100), -1)
+        
     
     print('Centroid : ', cX, cY)
     
