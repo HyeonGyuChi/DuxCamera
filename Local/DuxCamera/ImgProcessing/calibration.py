@@ -80,9 +80,9 @@ def simpleBlobDetect(img) :
     return blob_info
 
 
-
+# for quad camera
 # 무게중심(CX,CY) 찾기, 및 BLOB 사각형의 'ㄱ'부분 길이 구하기 (ref_square_w, ref_square_h), 
-def find_centroid(img, blob_info) : 
+def find_centroid_for_quadcam(img, blob_info) :
     img_h, img_w = np.shape(img)
     img_copy = np.copy(img) # 무게중심 표시를 위한 img
     img_temp = np.zeros((img_h, img_w), dtype=np.uint8) # 25개의 blob중 가장자리 blob 으로 무게중심 찾기 위한 사각형 
@@ -160,6 +160,96 @@ def find_centroid(img, blob_info) :
     # return[1] = (ref_square_w, ref_square_h) # 해당 사각형의 w,h
     # return [2] = (xmax, ymin, xmin, ymax) # ref 사각형의 w,h # 사각형의 네 꼭지점 정보
 
+# for single camera
+# 무게중심(CX,CY) 찾기, 및 BLOB 사각형의 'ㄱ'부분 길이 구하기 (ref_square_w, ref_square_h),
+def find_centroid_for_singlecam(img, blob_info):
+    img_h, img_w = np.shape(img)
+    img_copy = np.copy(img)  # 무게중심 표시를 위한 img
+    img_temp = np.zeros((img_h, img_w), dtype=np.uint8)  # 25개의 blob중 가장자리 blob 으로 무게중심 찾기 위한 사각형
+
+    # blob_info = [x,y,diameter]
+    # find  5 ymin 5 ymax blob
+    sorted_y_blob = blob_info[blob_info[::, 1].argsort()]  # y기준 sort
+
+    y_min_5_blob = sorted_y_blob[:5]  # 모든 y에서 가장 작은 5개 blob 후보군
+    y_max_5_blob = sorted_y_blob[-5:]  # 모든 y에서 가장 큰 5개 blob 후보군
+
+    x_max_blob_of_y_min = y_min_5_blob[np.argmax(y_min_5_blob[::, 0])]  # (1)
+    x_min_blob_of_y_min = y_min_5_blob[np.argmin(y_min_5_blob[::, 0])]  # y min 5 blob 중에서 가장 작은 x blob # (2)
+    x_min_blob_of_y_max = y_max_5_blob[np.argmin(y_max_5_blob[::, 0])]  # y max 5 blob 중에서 가장 작은 x blob # (3)
+    x_max_blob_of_y_max = y_max_5_blob[np.argmax(y_max_5_blob[::, 0])]  # (4)
+
+    # int로 변경
+    x_max_blob_of_y_min = x_max_blob_of_y_min.astype(np.int)
+    x_min_blob_of_y_min = x_min_blob_of_y_min.astype(np.int)
+    x_min_blob_of_y_max = x_min_blob_of_y_max.astype(np.int)
+    x_max_blob_of_y_max = x_max_blob_of_y_max.astype(np.int)
+
+    print('x_max_blob_of_y_min : ', x_max_blob_of_y_min[0:2])
+    print('x_min_blob_of_y_min : ', x_min_blob_of_y_min[0:2])
+    print('x_min_blob_of_y_max : ', x_min_blob_of_y_max[0:2])
+    print('x_max_blob_of_y_max : ', x_max_blob_of_y_max[0:2])
+
+    # side blob point 표시
+    # cv2.circle(img_temp, (x_min_blob[0], x_min_blob[1]),  1, (155, 155, 155), 10)
+    # cv2.circle(img_temp, (x_max_blob[0], x_max_blob[1]),  1, (155, 155, 155), 10)
+    # cv2.circle(img_temp, (y_min_blob[0], y_min_blob[1]),  1, (155, 155, 155), 10)
+    # cv2.circle(img_temp, (y_max_blob[0], y_max_blob[1]),  1, (155, 155, 155), 10)
+
+    # 해당 side 포인트이 꼭지점을 이루는 사각형 그리기
+    pts = np.array([[x_max_blob_of_y_min[0], x_max_blob_of_y_min[1]],
+                    [x_min_blob_of_y_min[0], x_min_blob_of_y_min[1]],
+                    [x_min_blob_of_y_max[0], x_min_blob_of_y_max[1]],
+                    [x_max_blob_of_y_max[0], x_max_blob_of_y_max[1]]], np.int32)
+
+    pts = pts.reshape((-1, 1, 2))
+
+    cv2.polylines(img_copy, [pts], isClosed=True, color=(155, 155, 155), thickness=10)  # 사각형 그리기
+    cv2.fillPoly(img_temp, [pts], (155, 155, 155), cv2.LINE_AA)  # 채워진 사각형 그리기
+    # cv2.fillPoly(img_copy, [pts], (155, 155, 155), cv2.LINE_AA) # 채워진 사각형 그리기
+
+    # img_temp의 무게중심 구하기
+    # contours, hierarchy = cv2.findContours(img_temp, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+
+    # for i in contours:
+    #     M = cv2.moments(i)
+    #     cX = int(M['m10'] / M['m00'])
+    #     cY = int(M['m01'] / M['m00'])
+    #
+    #     cv2.circle(img_temp, (cX, cY), 15, (100, 100, 100), -1)
+    #     cv2.circle(img_copy, (cX, cY), 15, (100, 100, 100), -1)
+    #     cv2.drawContours(img_temp, [i], 0, (100, 100, 100), 10)
+
+    ## 두 선분의 교점으로 구하기
+    cX, cY = get_crosspt(x_min_blob_of_y_min[0:2], x_max_blob_of_y_max[0:2], x_max_blob_of_y_min[0:2], x_min_blob_of_y_max[0:2])
+
+    cX = int(cX)
+    cY = int(cY)
+
+    cv2.circle(img_temp, (cX, cY), 15, (100, 100, 100), -1)
+    cv2.circle(img_copy, (cX, cY), 15, (100, 100, 100), -1)
+
+    print('Centroid : ', cX, cY)
+
+    # ref_square에 구하기 'ㄱ'부분 길이 구하기
+    ref_square_w = point2_distance(x_max_blob_of_y_min[0:2], x_min_blob_of_y_min[0:2])  # 'ㄱ'의 'ㅡ'부분 # 1 - 2
+    ref_square_h = point2_distance(x_max_blob_of_y_min[0:2], x_max_blob_of_y_max[0:2])  # 'ㄱ'의 '|'부분 # 1 - 4
+
+    print('ref_square_w : ', ref_square_w)
+    print('ref_square_h : ', ref_square_h)
+
+    plt.figure(figsize=(20, 10))
+    plt.subplot(121), plt.imshow(img_copy, cmap='gray'), plt.title('Centroid Point')
+    plt.subplot(122), plt.imshow(img_temp, cmap='gray'), plt.title('Ref square from Side_Blob')
+    plt.show();
+
+    return ((int(cX), int(cY)), (int(ref_square_w), int(ref_square_h)), (
+    (x_max_blob_of_y_min[0], x_max_blob_of_y_min[1]), (x_min_blob_of_y_min[0], x_min_blob_of_y_min[1]),
+    (x_min_blob_of_y_max[0], x_min_blob_of_y_max[1]),
+    (x_max_blob_of_y_max[0], x_max_blob_of_y_max[1])))  # 25개 blob의 무게중심(cX, cY) # ref 사각형의 w,h # 사각형의 네 꼭지점 정보
+    # return[0] = (cX, cY) # 25 blob 사각형의 무게중심
+    # return[1] = (ref_square_w, ref_square_h) # 해당 사각형의 w,h
+    # return [2] = (xmax, ymin, xmin, ymax) # ref 사각형의 w,h # 사각형의 네 꼭지점 정보
 
 
 
